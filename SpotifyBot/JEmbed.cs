@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Discord;
 
 
-namespace SpotifyBot
+namespace RaidBot
 {
     /// <summary>
     /// A class for creating and building Discord.NET embeds.

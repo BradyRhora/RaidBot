@@ -9,7 +9,7 @@ using Discord.WebSocket;
 using System.IO;
 using System.Reflection;
 
-namespace SpotifyBot
+namespace RaidBot
 {
     class Bot
     {
@@ -25,23 +25,23 @@ namespace SpotifyBot
             try
             {
                 DiscordSocketConfig config = new DiscordSocketConfig() { MessageCacheSize = 1000 };
-                Console.WriteLine("Welcome. Initializing ForkBot...");
+                Console.WriteLine("Welcome. Initializing RaidBot...");
                 client = new DiscordSocketClient(config);
                 Console.WriteLine("Client Initialized.");
                 commands = new CommandService();
                 Console.WriteLine("Command Service Initialized.");
                 await InstallCommands();
                 Console.WriteLine("Commands Installed, logging in.");
-                if (!File.Exists("Constants/bottoken"))
+                if (!File.Exists("bottoken"))
                 {
-                    File.WriteAllText("Constants/bottoken", "");
-                    Console.WriteLine("Created bottoken file in Constants folder, you will need to put the token in this file.");
+                    File.WriteAllText("bottoken", "");
+                    Console.WriteLine("Created bottoken file, you will need to put the token in this file.");
                 }
-                await client.LoginAsync(TokenType.Bot, File.ReadAllText("Constants/bottoken"));
+                await client.LoginAsync(TokenType.Bot, File.ReadAllText("bottoken"));
 
                 Console.WriteLine("Successfully logged in!");
                 await client.StartAsync();
-                Console.WriteLine($"Bot successfully initialized.");
+                Console.WriteLine($"RaidBot successfully initialized.");
                 await Task.Delay(-1);
             }
             catch (Exception e)
@@ -70,12 +70,14 @@ namespace SpotifyBot
 
             int argPos = 0;
             //detect and execute commands
-            if (message.HasCharPrefix(';', ref argPos))
+            if (message.HasCharPrefix('>', ref argPos))
             {
-                // new user prevention
-                var userCreationDate = message.Author.CreatedAt;
-                var existenceTime = DateTime.UtcNow.Subtract(userCreationDate.DateTime);
-                var week = new TimeSpan(7, 0, 0, 0);
+                var user = new Raid.Profile(message.Author);
+                if (user.GetClass() == null && !message.Content.StartsWith(">choose"))
+                {
+                    await message.Channel.SendMessageAsync(Raid.Class.StartMessage());
+                    return;
+                }
 
                 var context = new CommandContext(client, message);
                 var result = await commands.ExecuteAsync(context, argPos, services: null);

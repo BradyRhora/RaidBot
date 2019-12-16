@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{4B6353E1-56EF-4D43-9A3F-1C65DDEA1896}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>SpotifyBot</RootNamespace>
-    <AssemblyName>SpotifyBot</AssemblyName>
+    <RootNamespace>RaidBot</RootNamespace>
+    <AssemblyName>RaidBot</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -89,6 +89,7 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Globalization.Calendars, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Globalization.Calendars.4.3.0\lib\net46\System.Globalization.Calendars.dll</HintPath>
       <Private>True</Private>
@@ -206,11 +207,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AStar.cs" />
     <Compile Include="Bot.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="GameThings.cs" />
     <Compile Include="JEmbed.cs" />
+    <Compile Include="Placeable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Raid.cs" />
+    <Compile Include="Functions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
