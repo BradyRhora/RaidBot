@@ -12,7 +12,6 @@ namespace RaidBot
     public partial class Raid
     {
         readonly static Random rdm = new Random();
-
         public static bool ChannelHasRaid(IMessageChannel channel)
         {
             return Games.Where(x => x.GetChannel().Id == channel.Id).Count() > 0;
