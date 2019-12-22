@@ -207,20 +207,33 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AStar.cs" />
-    <Compile Include="Bot.cs" />
-    <Compile Include="Commands.cs" />
-    <Compile Include="Constants.cs" />
-    <Compile Include="GameThings.cs" />
-    <Compile Include="JEmbed.cs" />
-    <Compile Include="Placeable.cs" />
+    <Compile Include="Raid\Action\Action.cs" />
+    <Compile Include="Bot Classes\AStar.cs" />
+    <Compile Include="Bot Classes\Bot.cs" />
+    <Compile Include="Raid\Class.cs" />
+    <Compile Include="Bot Classes\Commands.cs" />
+    <Compile Include="Bot Classes\Constants.cs" />
+    <Compile Include="Raid\Action\Skill.cs" />
+    <Compile Include="Raid\Game.cs" />
+    <Compile Include="Raid\Help.cs" />
+    <Compile Include="Raid\Placeable\Item.cs" />
+    <Compile Include="Bot Classes\JEmbed.cs" />
+    <Compile Include="Raid\Placeable\Monster.cs" />
+    <Compile Include="Raid\Placeable\Placeable.cs" />
+    <Compile Include="Raid\Placeable\Player.cs" />
+    <Compile Include="Raid\Placeable\Profile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Raid.cs" />
-    <Compile Include="Functions.cs" />
+    <Compile Include="Raid\Raid.cs" />
+    <Compile Include="Bot Classes\Functions.cs" />
+    <Compile Include="Raid\Room.cs" />
+    <Compile Include="Raid\Shop.cs" />
+    <Compile Include="Raid\Action\Spell.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="bin\Debug\Raid\108312797162541056.raid" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

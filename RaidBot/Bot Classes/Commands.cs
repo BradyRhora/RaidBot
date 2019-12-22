@@ -12,7 +12,6 @@ namespace RaidBot
     public class Commands : ModuleBase
     {
         Random rdm = new Random();
-        readonly Exception NotBradyException = new Exception("This command can only be used by Brady.");
 
         [Command("help"), Summary("Displays commands and information about topics.")]
         public async Task Help(string topic = null)
@@ -193,7 +192,16 @@ namespace RaidBot
         public async Task Shop(string param = "")
         {
             var rUser = new Raid.Profile(Context.User);
-            await ReplyAsync("", embed: Raid.Shop.GetCurrentShop().BuildShopEmbed(rUser));
+            switch (param) 
+            {
+                case "":
+                    await ReplyAsync("", embed: Raid.Shop.GetCurrentShop().BuildShopEmbed(rUser));
+                    break;
+                default:
+                    var Shop = Raid.Shop.GetCurrentShop();
+                    //if (Shop.GetStock().con)
+                    break;
+            }
         }
 
         [Command("raid"), Summary("Choose a class then take on enemies to level up and gain glorious loot!"), Alias(new string[] { "r" })]
@@ -301,6 +309,80 @@ namespace RaidBot
             {
                 await ReplyAsync("Dummy thicc error! Check console for deets.");
                 Console.WriteLine(e);
+            }
+        }
+
+        [Command("duel"), Summary("Challenge another player to a fight to the death!")]
+        public async Task Duel(string command = "", IUser player = null)
+        {
+            if (command == "challenge")
+            {
+                if (Raid.ChannelHasRaid(Context.Channel))
+                {
+                    await ReplyAsync("This channel currently has an ongoing raid! You must duel somewhere else.");
+                    return;
+                }
+
+                if (player == null)
+                {
+                    await ReplyAsync("You must specify a user to challenge.");
+                    return;
+                }
+
+                var user1 = new Raid.Profile(Context.User);
+                var user2 = new Raid.Profile(player);
+
+                await ReplyAsync($"{player.Mention}! {user1.GetName()} the level {user1.GetLevel()} {user1.GetClass().Name} has challenged you to a duel! To accept, type: `>duel accept`");
+                new Raid.Duel(user1, user2, Context.Channel);
+            }
+            else if (command == "accept")
+            {
+                var r = Raid.GetChannelRaid(Context.Channel);
+                if (r != null && r.GetType() == typeof(Raid.Duel))
+                {
+                    var duel = r as Raid.Duel;
+                    if (duel.Started) await ReplyAsync("The duel has already begun!");
+                    else if (Context.User.Id == duel.Opponent.ID)
+                    {
+                        duel.Join(new Raid.Profile(Context.User));
+                        await duel.Start();
+                    }
+                    else await ReplyAsync($"Only the player challenged by {duel.Host.GetName()} can accept the duel! ({duel.Opponent.GetName()})");
+                }
+                else await ReplyAsync("There is no duel in this channel.");
+            }
+            else if (command == "deny")
+            {
+                var r = Raid.GetChannelRaid(Context.Channel);
+                if (r != null && r.GetType() == typeof(Raid.Duel))
+                {
+                    var duel = r as Raid.Duel;
+                    if (Context.User.Id == duel.Opponent.ID)
+                    {
+                        await ReplyAsync($"{duel.Host.GetName()}, {Context.User.Username} has denied the duel.");
+                        Raid.Duels.Remove(duel);
+                    }
+                    else await ReplyAsync($"Only the player challenged by {duel.Host.GetName()} can deny the duel! ({duel.Opponent.GetName()})");
+                }
+            }
+            else if (command == "cancel")
+            {
+                var r = Raid.GetChannelRaid(Context.Channel);
+                if (r != null)
+                {
+                    var d = r as Raid.Duel;
+                    if (d.Host.ID == Context.Channel.Id)
+                    {
+                        Raid.Duels.Remove(d);
+                        await ReplyAsync("Duel successfully cancelled.");
+                    }
+                    else await ReplyAsync("Only the host can cancel the duel.");
+                }
+                else await ReplyAsync("There are no duels in this channel to cancel.");
+            }
+            else
+            {
+                await ReplyAsync("To duel another user, use: `>duel challenge [player]`");
             }
         }
     }
