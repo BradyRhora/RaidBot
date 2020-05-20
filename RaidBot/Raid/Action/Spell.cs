@@ -17,7 +17,7 @@ namespace RaidBot
             public static Spell Summon_Familiar = new Spell("summon_familiar", "🐺", "Summons a creature to aid you in battle!", 8, new ActionDetails(0, Direction.All, 1, new ActionEffect("Wolf", "🐺", 0, false, 5, Monster.Wolf)));
             public static Spell Heal = new Spell("heal", "❤️", "Restores an ally's heath.", 7, new ActionDetails(-2, Direction.Cardinal, 5));
             public static Spell Flame_Wall = new Spell("flame_wall", "🔥", "Creates a wall of fire across the room that lasts for several turns.", 9, new ActionDetails(1, Direction.Cardinal, 5, new ActionEffect("Fire", "🔥", 2, continuous: true, lifespan: 4)));
-
+            
             public static Spell[] Spells = { Lightning_Bolt, Magic_missile, Fire_Bolt, Tornado, Summon_Familiar, Heal, Flame_Wall };
 
             public Spell(string name, string emote, string description, int requiredlvl, ActionDetails actDet = null, bool reqDir = true) : base(name, description, Type.Spell, actDet, requiredlvl, reqDir)

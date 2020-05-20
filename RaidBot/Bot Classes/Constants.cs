@@ -14,5 +14,10 @@ namespace RaidBot
         {
             public static ulong BRADY = 108312797162541056;
         }
+
+        public class Strings
+        {
+            public static string DB_CONNECTION_STRING = @"data source=Files\RaidDB.db";
+        }
     }
 }

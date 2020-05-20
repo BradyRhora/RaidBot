@@ -30,9 +30,9 @@ namespace RaidBot
         public async Task Choose(string choice, string param = null)
         {
             var rUser = new Raid.Profile(Context.User);
-            if (Raid.Class.Classes().Where(x => x.Name.ToLower() == choice.ToLower()).Count() > 0) //checks if the specified class exists
+            if (Raid.Class.GetClasses().Where(x => x.Name.ToLower() == choice.ToLower()).Count() > 0) //checks if the specified class exists
             {
-                var c = rUser.GetClass();
+                var c = rUser.Class;
                 if (c != null)
                 {
                     if (param == null || param != "confirm")
@@ -43,8 +43,8 @@ namespace RaidBot
                 }
 
                 var chosenClass = Raid.Class.GetClass(choice);
-                rUser.SetMultipleData(new string[,] { { "class", choice.ToLower() }, { "level", "1" }, { "exp", "0" }, { "emote", "👨" }, { "gold", "100" }, { "power", chosenClass.BasePower.ToString() }, { "speed", chosenClass.BaseSpeed.ToString() }, { "magic_power", chosenClass.BaseMagic_Power.ToString() } });
-                rUser.AddDataA("actions", chosenClass.BaseActions.Select(x => x.Name).ToArray());
+                rUser.Create(chosenClass);
+                rUser.GiveAction(chosenClass.BaseActions);
 
                 await ReplyAsync($"You are now a {choice}, form your party with `>host` or join another with `>join` and go fourth!\n" +
                     "You may also set your own custom emote with `>emote [emote]` the emote must be a Unicode emote (not a custom one!) and " +
@@ -182,7 +182,7 @@ namespace RaidBot
             if (Regex.IsMatch(emote, EmojiPattern))
             {
                 var rUser = new Raid.Profile(Context.User);
-                rUser.SetData("emote", emote);
+                rUser.SetEmote(emote);
                 await ReplyAsync($"Successfully set emote to {emote}.");
             }
             else await ReplyAsync("Invalid emote. Make sure you're choosing a valid **Unicode** emote.");
@@ -225,7 +225,7 @@ namespace RaidBot
                     if (rGame == null || !rGame.Started)
                     {
                         
-                        if (rUser.GetClass() == null) // find somewhere for this
+                        if (rUser.Class == null) // find somewhere for this
                         {
                             await ReplyAsync(Raid.Class.StartMessage());
                             return;
@@ -332,7 +332,7 @@ namespace RaidBot
                 var user1 = new Raid.Profile(Context.User);
                 var user2 = new Raid.Profile(player);
 
-                await ReplyAsync($"{player.Mention}! {user1.GetName()} the level {user1.GetLevel()} {user1.GetClass().Name} has challenged you to a duel! To accept, type: `>duel accept`");
+                await ReplyAsync($"{player.Mention}! {user1.GetName()} the level {user1.Level} {user1.Class.Name} has challenged you to a duel! To accept, type: `>duel accept`");
                 new Raid.Duel(user1, user2, Context.Channel);
             }
             else if (command == "accept")

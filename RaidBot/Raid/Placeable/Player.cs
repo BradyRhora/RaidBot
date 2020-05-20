@@ -209,7 +209,7 @@ namespace RaidBot
                 }
                 else if (action.GetType() == typeof(Spell) || action.GetType() == typeof(Skill))
                 {
-                    if (!GetActions().Contains(action))
+                    if (!Actions.Contains(action))
                         return "You cannot use this action.";
 
                     var details = action.UseAction();

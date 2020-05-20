@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data.SQLite;
 
 namespace RaidBot
 {
@@ -10,41 +11,56 @@ namespace RaidBot
     {
         public class Item : Placeable, IShoppable
         {
-            public static Item[] Items =
+            public static Item[] GetAllItems()
             {
-                new Item("dagger", "🗡", 50, 5, "A short, deadly blade that can be coated in poison.", types: new ItemType[] { ItemType.Weapon }),
-                new Item("key", "🔑", -1, 1, "An item found in dungeons. Used to open doors and chests.", purchaseable:false),
-                new Item("ring", "💍", 150, 1, "A valuable item that can sold in shops or enchanted.", types: new ItemType[] { ItemType.General, ItemType.Magic }),
-                new Item("bow and arrow", "🏹", 50, 2, "A well crafted piece of wood with a string attached, used to launch arrows at enemies to damage them from a distance.", types: new ItemType[] { ItemType.Weapon }),
-                new Item("pill", "💊", 25, 0, "A drug with various effects.", purchaseable:false),
-                new Item("syringe", "💉", 65, 1, "A needle filled with healing liquids to regain health."),
-                new Item("shield", "🛡", 45, 3, "A sturdy piece of metal that can be used to block incoming attacks.", types: new ItemType[] { ItemType.Weapon }),
-                new Item("gem", "💎", 200, 0, "A large valuable gem that can be sold at a high price or used as an arcane focus to increase a spells power.", types: new ItemType[] { ItemType.General, ItemType.Magic }),
-                new Item("apple", "🍎", 10, 0, "A red fruit that provides minor healing.", types: new ItemType[] { ItemType.Food }),
-                new Item("banana", "🍌", 12, 0, "A long yellow fruit that provides minor healing.", types: new ItemType[] { ItemType.Food }),
-                new Item("potato", "🥔", 15, 0, "A vegetable that can be cooked in various ways and provides minor healing.", types: new ItemType[] { ItemType.Food }),
-                new Item("meat", "🍖", 20, 0, "Meat from some sort of animal that can be cooked and provides more than minor healing.", types: new ItemType[] { ItemType.Food }),
-                new Item("cake", "🍰", 25, 0,"A baked good, that's usually eaten during celebrations. Provides minor healing for all party members.", types: new ItemType[] { ItemType.Food }),
-                new Item("ale", "🍺", 10, 1, "A cheap drink that provides minor healing, but may have unwanted side effects.", types: new ItemType[] { ItemType.Food }),
-                new Item("guitar", "🎸", 50, 3, "A musical instrument, usually with six strings that play different notes."),
-                new Item("saxophone", "🎷", 50, 2, "A brass musical instrument."),
-                new Item("drum", "🥁", 50, 2, "A musical instrument that usually requires sticks to play beats."),
-                new Item("candle", "🕯", 50, 0, "A chunk of wax with a wick in the middle that slowly burns to create minor light."),
-                new Item("hammer", "🔨", 60, 7, "A heavy but strong weapon to crush your enemies.", types: new ItemType[] { ItemType.Weapon }),
-                new Item("axe", "🪓", 65, 7, "A heavy but strong weapon to crush your enemies.", types: new ItemType[] { ItemType.Weapon }),
-                new Item("sword", "⚔️", 70, 8, "A sharp blade to strike down your opponents.", types: new ItemType[] { ItemType.Weapon })
-            };
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
+                {
+                    sql.Open();
+                    var query = "SELECT * FROM ITEMS";
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        using (var r = cmd.ExecuteReader())
+                        {
+                            List<Item> itms = new List<Item>();
+                            while (r.Read())
+                            {
+                                var name = r.GetString(0);
+                                var emote = r.GetString(1);
+                                var value = r.GetInt32(2);
+                                var str = r.GetInt32(3);
+                                var desc = r.GetString(4);
+                                
+                                var buy = r.GetBoolean(5);
+                                var t = r.GetValue(6);
+                                ItemType[] types;
+                                if (t.GetType() == typeof(DBNull)) types = null;
+                                else types = StringToTypes((string)t);
+                                itms.Add(new Item(name, emote, value, str, desc, null, buy, types));
+                            }
+                            return itms.ToArray();
+                        }
+                    }
+                }
 
-
+            }
 
             public static Item GetItem(string name, params string[] tags)
             {
-                Item i = Items.Where(x => x.Name == name).First().Clone();
-                List<ItemTag> tagList = new List<ItemTag>();
-                foreach (var t in tags) tagList.Add(ItemTag.GetTagByName(t));
 
-                i.Tags = tagList.ToArray();
-                return i;
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
+                {
+                    sql.Open();
+                    var query = "SELECT * FROM ITEMS WHERE NAME = @name";
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name.ToLower());
+                        using (var r = cmd.ExecuteReader())
+                        {
+                            r.Read();
+                            return new Item(r.GetString(0), r.GetString(1), r.GetInt32(2), r.GetInt32(3), r.GetString(4), ItemTag.StringToTags(tags), r.GetBoolean(5), StringToTypes(r.GetString(6)));
+                        }
+                    }
+                }
             }
 
             public string Name { get; set; }
@@ -65,7 +81,7 @@ namespace RaidBot
             }
             public override int GetMoveDistance()
             {
-                throw new NotImplementedException("Item does not implement the method RollAttackDamage()");
+                throw new NotImplementedException("Item does not implement the method GetMoveDamage()");
             }
             public override int RollAttackDamage()
             {
@@ -165,6 +181,17 @@ namespace RaidBot
                 return Name;
             }
 
+            public static ItemType[] StringToTypes(string str)
+            {
+                var strTypes = str.Split(',');
+                List<ItemType> types = new List<ItemType>();
+                foreach (var s in strTypes)
+                {
+                    types.Add((ItemType)Enum.Parse(typeof(ItemType), s));
+                }
+                return types.ToArray();
+            }
+
         }
 
         public class ItemTag
@@ -203,6 +230,22 @@ namespace RaidBot
             public override int GetHashCode()
             {
                 return Name.GetHashCode();
+            }
+
+            public static ItemTag[] StringToTags(string str)
+            {
+                var strTags = str.Split(',');
+                List<ItemTag> tags = new List<ItemTag>();
+                foreach(var s in strTags)
+                {
+                    tags.Add(GetTagByName(s));
+                }
+                return tags.ToArray();
+            }
+
+            public static ItemTag[] StringToTags(string[] str)
+            {
+                return StringToTags(string.Join(",", str));
             }
         }
     }

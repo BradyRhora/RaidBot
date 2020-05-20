@@ -96,8 +96,9 @@ namespace RaidBot
             {
                 for (int i = 0; i < Size / 3; i++)
                 {
-                    int index = rdm.Next(Item.Items.Count());
-                    Loot.Add(Item.Items[index].Clone());
+                    var items = Item.GetAllItems();
+                    int index = rdm.Next(items.Count());
+                    Loot.Add(items[index].Clone());
                     int x, y;
                     do
                     {

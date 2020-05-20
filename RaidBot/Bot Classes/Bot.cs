@@ -73,7 +73,7 @@ namespace RaidBot
             if (message.HasCharPrefix('>', ref argPos))
             {
                 var user = new Raid.Profile(message.Author);
-                if (user.GetClass() == null && !message.Content.StartsWith(">choose"))
+                if (user.Class == null && !message.Content.StartsWith(">choose"))
                 {
                     await message.Channel.SendMessageAsync(Raid.Class.StartMessage());
                     return;

@@ -29,7 +29,7 @@ namespace RaidBot
             void SetStock()
             {
                 List<IShoppable> items = new List<IShoppable>();
-                foreach (IShoppable i in Item.Items) if (i.ForSale) items.Add(i);
+                foreach (IShoppable i in Item.GetAllItems()) if (i.ForSale) items.Add(i);
                 foreach (IShoppable i in Spell.Spells) if (i.ForSale) items.Add(i);
                 foreach (IShoppable i in Skill.Skills) if (i.ForSale) items.Add(i);
 
@@ -87,7 +87,7 @@ namespace RaidBot
                         x.Text = i.Key.Description;
                     }));
                 }
-                if (user != null) emb.Footer.Text = $"You currently have: 💰 {user.GetGold()} gold.";
+                if (user != null) emb.Footer.Text = $"You currently have: 💰 {user.Gold} gold.";
                 return emb.Build();
             }
 

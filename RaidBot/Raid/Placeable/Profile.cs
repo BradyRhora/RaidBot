@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using System.IO;
+//using System.IO;
 
 namespace RaidBot
 {
@@ -14,40 +16,79 @@ namespace RaidBot
         {
             public ulong ID;
             readonly string Name;
-            string[] profileData;
             public IUser DiscordUser;
-            public int Power { get; }
-            public int Speed { get; }
-            public int Magic_Power { get; }
+            public string Emote { get; private set; }
+            public int Power { get; private set; }
+            public int Speed { get; private set; }
+            public int Magic_Power { get; private set; }
 
+            public Class Class { get; private set; }
+            public int Gold { get; private set; }
+            public int Level { get; private set; }
+            public int EXP { get; private set; }
             public Item[] Inventory;
             public Profile(IUser user)
             {
                 Name = Functions.GetName(user as IGuildUser);
                 ID = user.Id;
                 DiscordUser = user;
-                if (!Directory.Exists("Raid")) Directory.CreateDirectory("Raid");
-                if (File.Exists($"Raid/{ID}.raid")) profileData = File.ReadAllLines($"Raid/{ID}.raid");
-                else
+                var dbClass = GetData<string>("Class");
+                if (dbClass == null) Class = null;
+                else Class = Class.GetClass(dbClass);
+
+                if (Class != null)
                 {
-                    profileData = new string[] { };
-                    Save();
+                    Power = GetData<int>("Power");
+                    Magic_Power = GetData<int>("Magic_Power");
+                    Speed = GetData<int>("Speed");
+                    Gold = GetData<int>("Gold");
+                    EXP = GetData<int>("XP");
+                    Emote = GetData<string>("Emote");
+                    Level = GetData<int>("Level");
+                    Inventory = LoadItems();
+                    if (Inventory == null) Inventory = new Item[0];
+                    var actionNames = GetData<string>("Known_Actions").Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                    List<Action> acts = new List<Action>();
+                    foreach(var action in actionNames)
+                    {
+                        acts.Add(Action.GetActionByName(action));
+                    }
+                    Actions = acts.ToArray();
                 }
 
-                if (GetClass() != null)
-                {
-                    Power = Convert.ToInt32(GetData("power"));
-                    Magic_Power = Convert.ToInt32(GetData("magic_Power"));
-                    Speed = Convert.ToInt32(GetData("speed"));
-                }
-
-                Inventory = GetItems();
-                Actions = GetActions();
             }
 
-
-            public string GetData(string data)
+            public void Create(Class choice)
             {
+                Class = choice;
+                Level = 1;
+                EXP = 0;
+                Emote = "👨";
+                Gold = 100;
+                Power = choice.BasePower;
+                Speed = choice.BaseSpeed;
+                Magic_Power = choice.BaseMagic_Power;
+                Actions = choice.BaseActions;
+                CreateDBEntry();
+                //Save();
+            }
+
+            public T GetData<T>(string data)
+            {
+
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
+                {
+                    sql.Open();
+                    var query = $"SELECT {data} FROM PROFILES WHERE ID = {ID}";
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        var val = cmd.ExecuteScalar();
+                        if (val == null) return default(T);
+                        else return (T)Convert.ChangeType(val, typeof(T));
+                    }
+                }
+
+                /*
                 foreach (string s in profileData)
                 {
                     if (s.ToLower().StartsWith(data.ToLower() + ":")) return s.Split(':')[1];
@@ -56,106 +97,13 @@ namespace RaidBot
                 string[] newData = { data.ToLower() + ":0" };
                 profileData = profileData.Concat(newData).ToArray();
                 Save();
-                return "0";
+                return "0";*/
             }
-            public void SetData(string dataName, string data)
-            {
-                GetData(dataName);
-                for (int i = 0; i < profileData.Count(); i++)
-                {
-                    if (profileData[i].StartsWith(dataName + ":"))
-                    {
-                        profileData[i] = $"{dataName}:{data}";
-                        break;
-                    }
-                }
-
-                Save();
-            }
-            public void SetMultipleData(string[,] data)
-            {
-                for (int i = 0; i < data.GetLength(0); i++)
-                {
-                    GetData(data[i, 0]);
-                    for (int j = 0; j < profileData.Count(); j++)
-                    {
-                        if (profileData[j].StartsWith(data[i, 0] + ":"))
-                        {
-                            profileData[j] = $"{data[i, 0]}:{data[i, 1]}";
-                            break;
-                        }
-                    }
-                }
-                Save();
-            }
-
-            public string[] GetDataA(string data)
-            {
-                var uData = profileData;
-                List<string> results = new List<string>();
-                bool adding = false;
-                foreach (string d in uData)
-                {
-                    if (d.StartsWith(data)) adding = true;
-                    else if (adding && d.Contains("}")) break;
-                    else if (adding) results.Add(d.Replace("\t", ""));
-                }
-
-                if (!adding)
-                {
-                    var list = uData.ToList();
-                    list.Add($"{data}{{");
-                    list.Add("}");
-                    profileData = list.ToArray();
-                    Save();
-                }
-
-                return results.ToArray();
-            }
-            public void AddDataA(string dataA, string data) => AddDataA(dataA, new string[] { data });
-
-            public void AddDataA(string dataA, string[] data)
-            {
-                GetDataA(dataA); //ensure data array exists
-                string[] newData = new string[profileData.Count() + data.Count()];
-                for (int i = 0; i < profileData.Count(); i++)
-                {
-                    if (profileData[i].Contains($"{dataA}{{"))
-                    {
-                        for (int o = 0; o <= i; o++) newData[o] = profileData[o];
-
-                        for (int a = 0; a < data.Count(); a++)
-                            newData[i + a + 1] = "\t" + data[a];
-
-                        for (int o = data.Count() + i + 1; o < newData.Count(); o++) newData[o] = profileData[o - data.Count()];
-                        break;
-                    }
-
-                }
-                profileData = newData;
-                Save();
-            }
-            public void RemoveDataA(string dataA, string data)
-            {
-                var newData = new string[profileData.Count() - 1];
-                bool removing = false;
-                for (int i = 0; i < profileData.Count(); i++)
-                {
-                    if (profileData[i].Contains($"{dataA}{{")) removing = true;
-                    else if (removing && profileData[i].Contains(data))
-                    {
-                        for (int o = 0; o < i; o++) newData[o] = profileData[o];
-                        for (int o = i + 1; o <= newData.Count(); o++) newData[o - 1] = profileData[o];
-                        break;
-                    }
-                }
-                profileData = newData;
-                Save();
-            }
+            
 
             public Embed BuildProfileEmbed()
             {
-                Class rClass = GetClass();
+                Class rClass = Class;
                 JEmbed emb = new JEmbed
                 {
                     ColorStripe = Constants.Colours.DEFAULT,
@@ -170,13 +118,13 @@ namespace RaidBot
                 emb.Fields.Add(new JEmbedField(x =>
                 {
                     x.Header = "Level";
-                    x.Text = GetLevel().ToString();
+                    x.Text = Level.ToString();
                     x.Inline = true;
                 }));
                 emb.Fields.Add(new JEmbedField(x =>
                 {
                     x.Header = "EXP";
-                    x.Text = GetEXP().ToString() + "/" + EXPToNextLevel();
+                    x.Text = EXP.ToString() + "/" + EXPToNextLevel();
                     x.Inline = true;
                 }));
                 emb.Fields.Add(new JEmbedField(x =>
@@ -253,49 +201,124 @@ namespace RaidBot
 
                 return emb.Build();
             }
+            
+            private void CreateDBEntry()
+            {
+
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
+                {
+                    sql.Open();
+                    var query = "INSERT INTO PROFILES VALUES(@ID,@class,@power,@speed,@mag_pow,@lvl,@xp,@gold,@emote,@actions)";
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@ID", ID);
+                        cmd.Parameters.AddWithValue("@class", Class.Name);
+                        cmd.Parameters.AddWithValue("@power", Power);
+                        cmd.Parameters.AddWithValue("@speed", Speed);
+                        cmd.Parameters.AddWithValue("@mag_pow", Magic_Power);
+                        cmd.Parameters.AddWithValue("@lvl", Level);
+                        cmd.Parameters.AddWithValue("@xp", EXP);
+                        cmd.Parameters.AddWithValue("@gold", Gold);
+                        cmd.Parameters.AddWithValue("@emote", Emote);
+                        var actions = string.Join(",", Actions.Select(x => x.Name));
+                        cmd.Parameters.AddWithValue("@actions", actions);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+            }
+            
             private void Save()
             {
-                File.WriteAllLines($"Raid/{ID}.raid", profileData);
-            }
 
-            public void GiveItem(Item item)
-            {
-                AddDataA("inventory", item.ItemToString());
-                Inventory = GetItems();
-            }
-            public Item[] GetItems()
-            {
-                var strItems = GetDataA("inventory");
-                List<Item> items = new List<Item>();
-                foreach (var i in strItems)
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
                 {
-                    Item newItem = Item.StringToItem(i);
-                    items.Add(newItem);
+                    sql.Open();
+                    //basic stats/gold
+                    var query = $"UPDATE PROFILES SET Class = @class, Power = @power, Speed = @speed,  Magic_Power = @mag_pow, Level = @lvl, XP = @xp, Gold = @gold, Emote = @emote, Known_Actions = @actions WHERE ID = {ID}";
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@class", Class.Name);
+                        cmd.Parameters.AddWithValue("@power",Power);
+                        cmd.Parameters.AddWithValue("@speed",Speed);
+                        cmd.Parameters.AddWithValue("@mag_pow",Magic_Power);
+                        cmd.Parameters.AddWithValue("@lvl", Level);
+                        cmd.Parameters.AddWithValue("@xp",EXP);
+                        cmd.Parameters.AddWithValue("@gold",Gold);
+                        cmd.Parameters.AddWithValue("@emote",Emote);
+                        var actions = string.Join(",", Actions.Select(x => x.Name));
+                        cmd.Parameters.AddWithValue("@actions", actions);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    //items
+                    query = $"DELETE FROM INVENTORY WHERE ID = {ID}";
+                    using (var cmd = new SQLiteCommand(query, sql)) cmd.ExecuteNonQuery();
+                    if (Inventory != null)
+                    {
+                        Dictionary<Item, int> itemCounts = new Dictionary<Item, int>();
+                        foreach (var item in Inventory)
+                        {
+                            if (itemCounts.ContainsKey(item))
+                            {
+                                itemCounts[item]++;
+                            }
+                            else itemCounts.Add(item, 1);
+                        }
+                        query = $"INSERT INTO INVENTORY VALUES";
+                        foreach (var item in itemCounts)
+                            query += $"({ID},{item.Key.Name},{item.Key.GetTagsString()},{item.Value}),";
+                        query = query.Trim(',');
+                        using (var cmd = new SQLiteCommand(query, sql)) cmd.ExecuteNonQuery();
+                    }
                 }
-                return items.ToArray();
+
             }
 
-            public void LearnAction(Action action)
+            private Item[] LoadItems()
             {
-                AddDataA("actions", action.Name);
-                Actions = GetActions();
+
+                using (var sql = new SQLiteConnection(Constants.Strings.DB_CONNECTION_STRING))
+                {
+                    sql.Open();
+                    var query = "SELECT * FROM INVENTORY WHERE ID = " + ID;
+                    using (var cmd = new SQLiteCommand(query, sql))
+                    {
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            List<Item> inv = new List<Item>();
+                            while (reader.Read())
+                            {
+                                int count = reader.GetInt32(3);
+                                for (int i = 0; i < count; i++)
+                                {
+                                    inv.Add(Item.GetItem(reader.GetString(1), reader.GetString(2).Split(',')));
+                                }
+                            }
+                            return inv.ToArray();
+                        }
+                    }
+                }
+
+            }
+            public void GiveItem(params Item[] item)
+            {
+                Inventory.Concat(item);
+            }
+            
+            public void LearnAction(params Action[] action)
+            {
+                Actions.Concat(action);
             }
             public bool KnowsActions(Action action)
             {
                 return Actions.Contains(action);
             }
-            public Action[] GetActions()
+            public void GiveAction(params Action[] actions)
             {
-                var strActions = GetDataA("actions");
-                List<Action> actions = new List<Action>();
-                foreach (var i in strActions)
-                {
-                    Action newAction = Action.GetActionByName(i);
-                    actions.Add(newAction);
-                }
-                return Action.Actions.Concat(actions).ToArray();
+                Actions.Concat(actions);
             }
-
+            
             public Item GetInventoryItemByName(string name)
             {
                 var items = Inventory;
@@ -304,27 +327,9 @@ namespace RaidBot
                 return null;
             }
 
-
-
-            public Class GetClass()
-            {
-                return Class.GetClass(GetData("class"));
-            }
-            public int GetGold()
-            {
-                return Convert.ToInt32(GetData("gold"));
-            }
-            public int GetLevel()
-            {
-                return Convert.ToInt32(GetData("level"));
-            }
-            public int GetEXP()
-            {
-                return Convert.ToInt32(GetData("exp"));
-            }
             public string GiveEXP(int amount)
             {
-                int current = GetEXP();
+                int current = EXP;
                 int newAmt = current + amount;
                 string lvlUpMsg = "";
                 while (newAmt >= EXPToNextLevel())
@@ -334,14 +339,14 @@ namespace RaidBot
                     lvlUpMsg = $"✨Level up! {newLvl - 1} -> {newLvl}✨"; //probably say stat gains or w/e too
                 }
 
-                SetData("exp", newAmt.ToString());
+                EXP = newAmt;
                 return lvlUpMsg;
             }
 
             int LevelUp()
             {
-                int newLevel = GetLevel() + 1;
-                SetData("level", newLevel.ToString());
+                int newLevel = Level + 1;
+                Level = newLevel;
                 return newLevel;
                 //give skill points and stuff
             }
@@ -350,10 +355,7 @@ namespace RaidBot
             {
                 return Name;
             }
-            public override string GetEmote()
-            {
-                return GetData("emote");
-            }
+            
             public override int GetMoveDistance()
             {
                 return (Speed / 2) + 1;
@@ -367,7 +369,16 @@ namespace RaidBot
 
             public int EXPToNextLevel()
             {
-                return (int)Math.Pow(5, GetLevel());
+                return (int)Math.Pow(5, Level);
+            }
+
+            public void SetEmote(string emote)
+            {
+                Emote = emote;
+            }
+            public override string GetEmote()
+            {
+                return Emote;
             }
         }
     }

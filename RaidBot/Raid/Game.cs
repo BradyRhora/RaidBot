@@ -110,7 +110,7 @@ namespace RaidBot
                         }
                         msg += $"It's {player.GetEmote()} <@{player.ID}>'s turn.\nChoose one of the following actions with `>r [action] (direction)`.\n" +
                                $"You can move `{player.StepsLeft}` more spaces. `❤️ {player.Health}/{player.MaxHealth}` \n```\n";
-                        var actions = player.GetActions();
+                        var actions = player.Actions;
                         for (int i = 0; i < actions.Count(); i++)
                         {
                             msg += $"{actions[i].Name}";

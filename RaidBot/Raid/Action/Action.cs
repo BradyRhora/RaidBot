@@ -48,7 +48,7 @@ namespace RaidBot
             {
                 var AllActions = Actions.Concat(Spell.Spells).Concat(Skill.Skills);
                 foreach (Action a in AllActions)
-                    if (a.Name == name)
+                    if (a.Name.ToLower() == name.ToLower())
                         return a;
                 return null;
             }
@@ -153,7 +153,7 @@ namespace RaidBot
                     Monster mon;
                     mon = Monster.Clone(game);
                     int monLevel = -1;
-                    if (owner != null) monLevel = owner.GetLevel() - 1;
+                    if (owner != null) monLevel = owner.Level - 1;
                     if (monLevel == 0) monLevel = 1;
                     if (monLevel != -1) mon.Level = monLevel;
                     mon.Owner = owner;
